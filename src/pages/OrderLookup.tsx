@@ -83,13 +83,13 @@ const OrderLookup = () => {
             </div>
             <CardTitle className="text-2xl font-display">Consultar Pedido</CardTitle>
             <p className="text-muted-foreground mt-2">
-              Digite o número do seu pedido para verificar o status
+              Digite o código do seu pedido para verificar o status
             </p>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSearch} className="space-y-4">
               <div>
-                <Label htmlFor="order-id">Número do Pedido</Label>
+                <Label htmlFor="order-id">Código do Pedido</Label>
                 <Input
                   id="order-id"
                   data-testid="search-order-id"

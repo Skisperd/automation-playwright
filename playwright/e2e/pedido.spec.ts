@@ -1,204 +1,60 @@
 import { test, expect } from '@playwright/test';
 import { generateOrderNumber } from '../support/helpers';
+import { OrderLockupPage } from '../support/pages/OrderLockupPage';
+import { approvedOrder, orderDetailsSnapshot, orders } from '../support/data/orders';
 
 test.describe('Consulta de pedido', () => {
 
+  let orderLockupPage: OrderLockupPage;
+
   test.beforeEach(async ({ page }) => {
-    await page.goto('http://localhost:5173/');
-    await expect(page.getByTestId('hero-section').getByRole('heading')).toContainText('Velô Sprint');
+    orderLockupPage = new OrderLockupPage(page);
 
-    await page.getByRole('link', { name: 'Consultar Pedido' }).click();
-    await expect(page.getByRole('heading')).toContainText('Consultar Pedido');
+    await orderLockupPage.openFromLanding();
+    await expect(page.getByRole('heading', { name: 'Consultar Pedido' })).toBeVisible();
   });
 
-  test('Deve consultar um pedido aprovado', async ({ page }) => {
+  for (const order of orders) {
+
+    test(`Deve consultar um pedido ${order.scenario}`, async ({ page }) => {
+
+      // Act
+      await orderLockupPage.searchOrder(order.code);
+
+      // Assert
+      await expect(page.locator('#root')).toMatchAriaSnapshot(orderDetailsSnapshot(order));
+
+      await expect(orderLockupPage.statusBadge).toHaveText(order.status);
+
+      for (const badgeClass of order.badge.classes) {
+        await expect(orderLockupPage.statusBadge).toHaveClass(new RegExp(`\\b${badgeClass}\\b`));
+      }
+
+      await expect(orderLockupPage.statusIcon).toHaveClass(new RegExp(`\\b${order.badge.icon}\\b`));
+    });
+
+  }
+
+  test('Deve consultar um pedido ignorando espaços e caixa do código', async () => {
 
     // Test Data
-    const order = {
-      number: 'VLO-LNFEYE',
-      status: 'APROVADO',
-      color: 'Glacier Blue',
-      wheels: 'aero Wheels',
-      customer: {
-        name: 'Tiago Oliveira',
-        email: 'tiago.qa@gmail.com'
-      },
-      payment: 'À Vista'
-    };
+    const code = `  ${approvedOrder.code.toLowerCase()}  `;
 
     // Act
-    await page.getByRole('textbox', { name: 'Número do Pedido' }).fill(order.number);
-    await page.getByRole('button', { name: 'Buscar Pedido' }).click();
+    await orderLockupPage.searchOrder(code);
 
     // Assert
-    await expect(page.locator('#root')).toMatchAriaSnapshot(`
-      - img
-      - paragraph: Pedido
-      - paragraph: ${order.number}
-      - status:
-        - img
-        - text: ${order.status}
-      - img "Velô Sprint"
-      - paragraph: Modelo
-      - paragraph: Velô Sprint
-      - paragraph: Cor
-      - paragraph: ${order.color}
-      - paragraph: Interior
-      - paragraph: cream
-      - paragraph: Rodas
-      - paragraph: ${order.wheels}
-      - heading "Dados do Cliente" [level=4]
-      - paragraph: Nome
-      - paragraph: ${order.customer.name}
-      - paragraph: Email
-      - paragraph: ${order.customer.email}
-      - paragraph: Loja de Retirada
-      - paragraph
-      - paragraph: Data do Pedido
-      - paragraph: /\\d+\\/\\d+\\/\\d+/
-      - heading "Pagamento" [level=4]
-      - paragraph: ${order.payment}
-      - paragraph: /R\\$ \\d+\\.\\d+,\\d+/
-    `);
-
-    const statusBadge = page.getByRole('status').filter({hasText: order.status});
-
-    await expect(statusBadge).toHaveClass(/bg-green-10/)
-    await expect(statusBadge).toHaveClass(/text-green-700/)
-
-    const statusIcon = statusBadge.locator('svg')
-    await expect(statusIcon).toHaveClass(/lucide-circle-check-big/)
-
-  });
-
-  test('Deve consultar um pedido reprovado', async ({ page }) => {
-
-    // Test Data
-    const order = {
-      number: 'VLO-0J7T9E',
-      status: 'REPROVADO',
-      color: 'Midnight Black',
-      wheels: 'sport Wheels',
-      customer: {
-        name: 'TIAGO DE OLIVEIRA',
-        email: 'felipe.reprovado@apple.com'
-      },
-      payment: 'À Vista'
-    };
-
-    // Act
-    await page.getByRole('textbox', { name: 'Número do Pedido' }).fill(order.number);
-    await page.getByRole('button', { name: 'Buscar Pedido' }).click();
-
-    // Assert
-    await expect(page.locator('#root')).toMatchAriaSnapshot(`
-      - img
-      - paragraph: Pedido
-      - paragraph: ${order.number}
-      - status:
-        - img
-        - text: ${order.status}
-      - img "Velô Sprint"
-      - paragraph: Modelo
-      - paragraph: Velô Sprint
-      - paragraph: Cor
-      - paragraph: ${order.color}
-      - paragraph: Interior
-      - paragraph: cream
-      - paragraph: Rodas
-      - paragraph: ${order.wheels}
-      - heading "Dados do Cliente" [level=4]
-      - paragraph: Nome
-      - paragraph: ${order.customer.name}
-      - paragraph: Email
-      - paragraph: ${order.customer.email}
-      - paragraph: Loja de Retirada
-      - paragraph
-      - paragraph: Data do Pedido
-      - paragraph: /\\d+\\/\\d+\\/\\d+/
-      - heading "Pagamento" [level=4]
-      - paragraph: ${order.payment}
-      - paragraph: /R\\$ \\d+\\.\\d+,\\d+/
-    `);
-
-    const statusBadge = page.getByRole('status').filter({hasText: order.status});
-
-    await expect(statusBadge).toHaveClass(/bg-red-10/)
-    await expect(statusBadge).toHaveClass(/text-red-700/)
-
-    const statusIcon = statusBadge.locator('svg')
-    await expect(statusIcon).toHaveClass(/lucide lucide-circle-x/)
-
-  });
-
-  test('Deve consultar um pedido em analise', async ({ page }) => {
-
-    // Test Data
-    const order = {
-      number: 'VLO-SGOZZO',
-      status: 'EM_ANALISE',
-      color: 'Lunar White',
-      wheels: 'aero Wheels',
-      customer: {
-        name: 'Nicolas James',
-        email: 'james@apple.com'
-      },
-      payment: 'À Vista'
-    };
-
-    // Act
-    await page.getByRole('textbox', { name: 'Número do Pedido' }).fill(order.number);
-    await page.getByRole('button', { name: 'Buscar Pedido' }).click();
-
-    // Assert
-    await expect(page.locator('#root')).toMatchAriaSnapshot(`
-      - img
-      - paragraph: Pedido
-      - paragraph: ${order.number}
-      - status:
-        - img
-        - text: ${order.status}
-      - img "Velô Sprint"
-      - paragraph: Modelo
-      - paragraph: Velô Sprint
-      - paragraph: Cor
-      - paragraph: ${order.color}
-      - paragraph: Interior
-      - paragraph: cream
-      - paragraph: Rodas
-      - paragraph: ${order.wheels}
-      - heading "Dados do Cliente" [level=4]
-      - paragraph: Nome
-      - paragraph: ${order.customer.name}
-      - paragraph: Email
-      - paragraph: ${order.customer.email}
-      - paragraph: Loja de Retirada
-      - paragraph
-      - paragraph: Data do Pedido
-      - paragraph: /\\d+\\/\\d+\\/\\d+/
-      - heading "Pagamento" [level=4]
-      - paragraph: ${order.payment}
-      - paragraph: /R\\$ \\d+\\.\\d+,\\d+/
-    `);
-
-    const statusBadge = page.getByRole('status').filter({hasText: order.status});
-
-    await expect(statusBadge).toHaveClass(/bg-amber-100/)
-    await expect(statusBadge).toHaveClass(/text-amber-700/)
-
-    const statusIcon = statusBadge.locator('svg')
-    await expect(statusIcon).toHaveClass(/lucide lucide-clock/)
-
+    await expect(orderLockupPage.orderCode).toHaveText(approvedOrder.code);
+    await expect(orderLockupPage.statusBadge).toHaveText(approvedOrder.status);
   });
 
   test('Deve exibir mensagem quando o pedido não é encontrado', async ({ page }) => {
 
     // Test Data
-    const order = generateOrderNumber();
+    const code = generateOrderNumber();
 
     // Act
-    await page.getByRole('textbox', { name: 'Número do Pedido' }).fill(order);
-    await page.getByRole('button', { name: 'Buscar Pedido' }).click();
+    await orderLockupPage.searchOrder(code);
 
     // Assert
     await expect(page.locator('#root')).toMatchAriaSnapshot(`
@@ -207,6 +63,39 @@ test.describe('Consulta de pedido', () => {
       - paragraph: Verifique o número do pedido e tente novamente
     `);
 
+    await expect(orderLockupPage.statusBadge).toBeHidden();
+  });
+
+  test('Deve limpar o resultado anterior ao consultar um pedido inexistente', async () => {
+
+    // Arrange
+    await orderLockupPage.searchOrder(approvedOrder.code);
+    await expect(orderLockupPage.orderCode).toHaveText(approvedOrder.code);
+
+    // Act
+    await orderLockupPage.searchOrder(generateOrderNumber());
+
+    // Assert
+    await expect(orderLockupPage.notFoundMessage).toBeVisible();
+    await expect(orderLockupPage.orderCode).toBeHidden();
+  });
+
+  test('Deve manter o botão de busca desabilitado enquanto o código não é informado', async () => {
+
+    // Assert
+    await expect(orderLockupPage.searchButton).toBeDisabled();
+
+    // Act
+    await orderLockupPage.orderCodeInput.fill('   ');
+
+    // Assert
+    await expect(orderLockupPage.searchButton).toBeDisabled();
+
+    // Act
+    await orderLockupPage.orderCodeInput.fill(approvedOrder.code);
+
+    // Assert
+    await expect(orderLockupPage.searchButton).toBeEnabled();
   });
 
 });

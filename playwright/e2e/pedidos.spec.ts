@@ -1,22 +1,16 @@
-import { test } from '@playwright/test'
+import { test } from '../support/fixtures'
 import { generateOrderCode } from '../support/helpers'
-import { Navbar } from '../support/components/Navbar'
-import { LandingPage } from '../support/pages/LandingPage'
-import { OrderLockupPage, OrderDetails } from '../support/pages/OrderLockupPage'
+import { OrderDetails } from '../support/actions/orderLockupActions'
 
 test.describe('Consulta de Pedido', () => {
-  
-  let orderLockupPage: OrderLockupPage
-  
-  test.beforeEach(async ({ page }) => {
-    await new LandingPage(page).goto()
-    await new Navbar(page).orderLockupLink()
 
-    orderLockupPage = new OrderLockupPage(page)
-    orderLockupPage.validatePageLoaded
+  test.beforeEach(async ({ app }) => {
+    await app.landing.goto()
+    await app.navbar.orderLockupLink()
+    await app.orderLockup.validatePageLoaded()
   })
 
-  test('deve consultar um pedido aprovado', async ({ page }) => {
+  test('deve consultar um pedido aprovado', async ({ app }) => {
 
     const order: OrderDetails = {
       number: 'VLO-LNFEYE',
@@ -32,13 +26,13 @@ test.describe('Consulta de Pedido', () => {
       total: 'R$ 40.000,00'
     }
 
-    await orderLockupPage.searchOrder(order.number)
+    await app.orderLockup.searchOrder(order.number)
 
-    await orderLockupPage.validateOrderDetails(order)
-    await orderLockupPage.validateStatusBadge(order.status)
+    await app.orderLockup.validateOrderDetails(order)
+    await app.orderLockup.validateStatusBadge(order.status)
   })
 
-  test('deve consultar um pedido reprovado', async ({ page }) => {
+  test('deve consultar um pedido reprovado', async ({ app }) => {
 
     // Test Data
     const order: OrderDetails = {
@@ -55,13 +49,13 @@ test.describe('Consulta de Pedido', () => {
       total: 'R$ 52.500,00'
     }
 
-    await orderLockupPage.searchOrder(order.number)
+    await app.orderLockup.searchOrder(order.number)
 
-    await orderLockupPage.validateOrderDetails(order)
-    await orderLockupPage.validateStatusBadge(order.status)
+    await app.orderLockup.validateOrderDetails(order)
+    await app.orderLockup.validateStatusBadge(order.status)
   })
 
-  test('deve consultar um pedido em analise', async ({ page }) => {
+  test('deve consultar um pedido em analise', async ({ app }) => {
     const order: OrderDetails = {
       number: 'VLO-SGOZZO',
       status: 'EM_ANALISE',
@@ -76,60 +70,60 @@ test.describe('Consulta de Pedido', () => {
       total: 'R$ 40.000,00'
     }
 
-    await orderLockupPage.searchOrder(order.number)
+    await app.orderLockup.searchOrder(order.number)
 
-    await orderLockupPage.validateOrderDetails(order)
-    await orderLockupPage.validateStatusBadge(order.status)
+    await app.orderLockup.validateOrderDetails(order)
+    await app.orderLockup.validateStatusBadge(order.status)
   })
 
-  test('deve consultar um pedido ignorando espaços e caixa do código', async ({ page }) => {
+  test('deve consultar um pedido ignorando espaços e caixa do código', async ({ app }) => {
 
     const orderCode = 'VLO-LNFEYE'
 
-    await orderLockupPage.searchOrder(`  ${orderCode.toLowerCase()}  `)
+    await app.orderLockup.searchOrder(`  ${orderCode.toLowerCase()}  `)
 
-    await orderLockupPage.validateOrderNumber(orderCode)
-    await orderLockupPage.validateStatusBadge('APROVADO')
+    await app.orderLockup.validateOrderNumber(orderCode)
+    await app.orderLockup.validateStatusBadge('APROVADO')
   })
 
-  test('deve exibir mensagem quando o pedido não é encontrado', async ({ page }) => {
+  test('deve exibir mensagem quando o pedido não é encontrado', async ({ app }) => {
 
     const orderCode = generateOrderCode()
 
-    await orderLockupPage.searchOrder(orderCode)
+    await app.orderLockup.searchOrder(orderCode)
 
-    await orderLockupPage.validateOrderNotFound()
+    await app.orderLockup.validateOrderNotFound()
   })
 
-  test('deve exibir mensagem quando o código do pedido está fora do padrão', async ({ page }) => {
+  test('deve exibir mensagem quando o código do pedido está fora do padrão', async ({ app }) => {
 
     const orderCode = 'XYZ-999-INVALIDO'
 
-    await orderLockupPage.searchOrder(orderCode)
+    await app.orderLockup.searchOrder(orderCode)
 
-    await orderLockupPage.validateOrderNotFound()
+    await app.orderLockup.validateOrderNotFound()
   })
 
-  test('deve limpar o resultado anterior ao consultar um pedido inexistente', async ({ page }) => {
+  test('deve limpar o resultado anterior ao consultar um pedido inexistente', async ({ app }) => {
 
     const orderCode = 'VLO-LNFEYE'
 
-    await orderLockupPage.searchOrder(orderCode)
-    await orderLockupPage.validateOrderNumber(orderCode)
+    await app.orderLockup.searchOrder(orderCode)
+    await app.orderLockup.validateOrderNumber(orderCode)
 
-    await orderLockupPage.searchOrder(generateOrderCode())
+    await app.orderLockup.searchOrder(generateOrderCode())
 
-    await orderLockupPage.validateOrderNotFound()
+    await app.orderLockup.validateOrderNotFound()
   })
 
-  test('deve manter o botão de busca desabilitado enquanto o código não é informado', async ({ page }) => {
+  test('deve manter o botão de busca desabilitado enquanto o código não é informado', async ({ app }) => {
 
-    await orderLockupPage.validateSearchButtonDisabled()
-    await orderLockupPage.fillOrderCode('   ')
-    await orderLockupPage.validateSearchButtonDisabled()
-    await orderLockupPage.fillOrderCode('VLO-LNFEYE')
+    await app.orderLockup.validateSearchButtonDisabled()
+    await app.orderLockup.fillOrderCode('   ')
+    await app.orderLockup.validateSearchButtonDisabled()
+    await app.orderLockup.fillOrderCode('VLO-LNFEYE')
 
-    await orderLockupPage.validateSearchButtonEnabled()
+    await app.orderLockup.validateSearchButtonEnabled()
   })
 
 })

@@ -16,25 +16,32 @@ export type OrderDetails = {
     total: string
 }
 
-export function createOrderLockupActions(page: Page) {
+export function createOrderLookupActions(page: Page) {
+
+    const orderInput = page.getByRole('textbox', { name: 'Código do Pedido' })
+    const searchButton = page.getByRole('button', { name: 'Buscar Pedido' })
 
     /** Valor exibido ao lado de um rótulo do cartão de detalhes. Ex.: "Cor" -> "Lunar White" */
     const fieldValue = (label: string) => page.locator(`p:text-is("${label}") + p`)
 
-    const fillOrderCode = async (code: string) => {
-        await page.getByRole('textbox', { name: 'Código do Pedido' }).fill(code)
-    }
-
     return {
-        async validatePageLoaded() {
+
+        elements: {
+            orderInput,
+            searchButton
+        },
+
+        async open() {
+            await page.goto('/')
+            await expect(page.getByTestId('hero-section').getByRole('heading')).toContainText('Velô Sprint')
+
+            await page.getByTestId('header-nav').getByRole('link', { name: 'Consultar Pedido' }).click()
             await expect(page.getByRole('heading', { name: 'Consultar Pedido' })).toBeVisible()
         },
 
-        fillOrderCode,
-
         async searchOrder(code: string) {
-            await fillOrderCode(code)
-            await page.getByRole('button', { name: 'Buscar Pedido' }).click()
+            await orderInput.fill(code)
+            await searchButton.click()
         },
 
         async validateOrderDetails(order: OrderDetails) {
@@ -82,23 +89,11 @@ export function createOrderLockupActions(page: Page) {
             await expect(statusBadge.locator('svg')).toHaveClass(new RegExp(`\\b${icon}\\b`))
         },
 
-        async validateOrderNumber(code: string) {
-            await expect(page.getByTestId('order-result-id')).toHaveText(code)
-        },
-
         async validateOrderNotFound() {
             await expect(page.getByRole('heading', { name: 'Pedido não encontrado' })).toBeVisible()
             await expect(page.getByText('Verifique o número do pedido e tente novamente')).toBeVisible()
             await expect(page.getByTestId('order-result-id')).toBeHidden()
             await expect(page.getByRole('status')).toBeHidden()
-        },
-
-        async validateSearchButtonDisabled() {
-            await expect(page.getByRole('button', { name: 'Buscar Pedido' })).toBeDisabled()
-        },
-
-        async validateSearchButtonEnabled() {
-            await expect(page.getByRole('button', { name: 'Buscar Pedido' })).toBeEnabled()
         },
     }
 }

@@ -1,13 +1,11 @@
-import { test } from '../support/fixtures'
+import { test, expect } from '../support/fixtures'
 import { generateOrderCode } from '../support/helpers'
-import { OrderDetails } from '../support/actions/orderLockupActions'
+import { OrderDetails } from '../support/actions/orderLookupActions'
 
 test.describe('Consulta de Pedido', () => {
 
   test.beforeEach(async ({ app }) => {
-    await app.landing.goto()
-    await app.navbar.orderLockupLink()
-    await app.orderLockup.validatePageLoaded()
+    await app.orderLookup.open()
   })
 
   test('deve consultar um pedido aprovado', async ({ app }) => {
@@ -26,10 +24,10 @@ test.describe('Consulta de Pedido', () => {
       total: 'R$ 40.000,00'
     }
 
-    await app.orderLockup.searchOrder(order.number)
+    await app.orderLookup.searchOrder(order.number)
 
-    await app.orderLockup.validateOrderDetails(order)
-    await app.orderLockup.validateStatusBadge(order.status)
+    await app.orderLookup.validateOrderDetails(order)
+    await app.orderLookup.validateStatusBadge(order.status)
   })
 
   test('deve consultar um pedido reprovado', async ({ app }) => {
@@ -49,10 +47,10 @@ test.describe('Consulta de Pedido', () => {
       total: 'R$ 52.500,00'
     }
 
-    await app.orderLockup.searchOrder(order.number)
+    await app.orderLookup.searchOrder(order.number)
 
-    await app.orderLockup.validateOrderDetails(order)
-    await app.orderLockup.validateStatusBadge(order.status)
+    await app.orderLookup.validateOrderDetails(order)
+    await app.orderLookup.validateStatusBadge(order.status)
   })
 
   test('deve consultar um pedido em analise', async ({ app }) => {
@@ -70,60 +68,56 @@ test.describe('Consulta de Pedido', () => {
       total: 'R$ 40.000,00'
     }
 
-    await app.orderLockup.searchOrder(order.number)
+    await app.orderLookup.searchOrder(order.number)
 
-    await app.orderLockup.validateOrderDetails(order)
-    await app.orderLockup.validateStatusBadge(order.status)
+    await app.orderLookup.validateOrderDetails(order)
+    await app.orderLookup.validateStatusBadge(order.status)
   })
 
-  test('deve consultar um pedido ignorando espaços e caixa do código', async ({ app }) => {
+  test('deve consultar um pedido ignorando espaços e caixa do código', async ({ app, page }) => {
 
     const orderCode = 'VLO-LNFEYE'
 
-    await app.orderLockup.searchOrder(`  ${orderCode.toLowerCase()}  `)
+    await app.orderLookup.searchOrder(`  ${orderCode.toLowerCase()}  `)
 
-    await app.orderLockup.validateOrderNumber(orderCode)
-    await app.orderLockup.validateStatusBadge('APROVADO')
+    await expect(page.getByTestId('order-result-id')).toHaveText(orderCode)
+    await app.orderLookup.validateStatusBadge('APROVADO')
   })
 
   test('deve exibir mensagem quando o pedido não é encontrado', async ({ app }) => {
 
     const orderCode = generateOrderCode()
 
-    await app.orderLockup.searchOrder(orderCode)
+    await app.orderLookup.searchOrder(orderCode)
 
-    await app.orderLockup.validateOrderNotFound()
+    await app.orderLookup.validateOrderNotFound()
   })
 
   test('deve exibir mensagem quando o código do pedido está fora do padrão', async ({ app }) => {
 
     const orderCode = 'XYZ-999-INVALIDO'
 
-    await app.orderLockup.searchOrder(orderCode)
+    await app.orderLookup.searchOrder(orderCode)
 
-    await app.orderLockup.validateOrderNotFound()
+    await app.orderLookup.validateOrderNotFound()
   })
 
   test('deve limpar o resultado anterior ao consultar um pedido inexistente', async ({ app }) => {
 
-    const orderCode = 'VLO-LNFEYE'
+    await app.orderLookup.searchOrder('VLO-LNFEYE')
+    await app.orderLookup.validateStatusBadge('APROVADO')
 
-    await app.orderLockup.searchOrder(orderCode)
-    await app.orderLockup.validateOrderNumber(orderCode)
+    await app.orderLookup.searchOrder(generateOrderCode())
 
-    await app.orderLockup.searchOrder(generateOrderCode())
-
-    await app.orderLockup.validateOrderNotFound()
+    await app.orderLookup.validateOrderNotFound()
   })
 
-  test('deve manter o botão de busca desabilitado enquanto o código não é informado', async ({ app }) => {
+  test('deve manter o botão de busca desabilitado com campo vazio ou apenas espaços', async ({ app }) => {
+    const button = app.orderLookup.elements.searchButton
+    await expect(button).toBeDisabled()
 
-    await app.orderLockup.validateSearchButtonDisabled()
-    await app.orderLockup.fillOrderCode('   ')
-    await app.orderLockup.validateSearchButtonDisabled()
-    await app.orderLockup.fillOrderCode('VLO-LNFEYE')
-
-    await app.orderLockup.validateSearchButtonEnabled()
+    await app.orderLookup.elements.orderInput.fill('   ')
+    await expect(button).toBeDisabled()
   })
 
 })

@@ -1,6 +1,7 @@
 import { test, expect } from '../support/fixtures'
 
 import { deleteOrderByEmail } from '../support/database/orderRepository'
+import { createCheckoutActions } from '../support/actions/checkoutActions'
 
 test.describe('Checkout', () => {
 
@@ -8,7 +9,7 @@ test.describe('Checkout', () => {
 
   test.describe('Validações de campos obrigatórios', () => {
 
-    let alerts: any
+    let alerts: ReturnType<typeof createCheckoutActions>['elements']['alerts']
 
     test.beforeEach(async ({ page, app }) => {
       await page.goto('/order')
